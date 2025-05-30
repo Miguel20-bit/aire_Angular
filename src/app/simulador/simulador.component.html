@@ -1,1 +1,26 @@
-<p>simulador works!</p>
+ <meta charset="UTF-8">
+  <title>Simulador de Calidad de Aire</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
+
+  <h2>Simulador de Sensor de Calidad de Aire</h2>
+  <p>Enviando datos cada 5 segundos...</p>
+
+  <script>
+    const client = new Paho.MQTT.Client("localhost", 9001, "simulador_" + Math.random().toString(16).substr(2, 8));
+    client.connect({ onSuccess: () => setInterval(publicarDatos, 5000) });
+
+    function publicarDatos() {
+      publicar("/air/pm25", (Math.random() * 100).toFixed(1));      // µg/m³
+      publicar("/air/pm10", (Math.random() * 150).toFixed(1));      // µg/m³
+      publicar("/air/co2", (Math.random() * 1000 + 400).toFixed(0)); // ppm
+      publicar("/air/tvoc", (Math.random() * 800).toFixed(0));       // ppb
+      publicar("/air/ica", (Math.random() * 500).toFixed(0));        // AQI
+    }
+
+    function publicar(topico, valor) {
+      const mensaje = new Paho.MQTT.Message(valor);
+      mensaje.destinationName = topico;
+      client.send(mensaje);
+      console.log(`Publicado en ${topico}: ${valor}`);
+    }
+  </script>
