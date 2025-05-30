@@ -6,7 +6,7 @@
   <p>Enviando datos cada 5 segundos...</p>
 
   <script>
-    const client = new Paho.MQTT.Client("localhost", 9001, "simulador_" + Math.random().toString(16).substr(2, 8));
+    const client = new Paho.MQTT.Client("mqtt", 9001, "simulador_" + Math.random().toString(16).substr(2, 8));
     client.connect({ onSuccess: () => setInterval(publicarDatos, 5000) });
 
     function publicarDatos() {

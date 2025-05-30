@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  mqtt:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    restart: unless-stopped
+
+  angular-app:
+    image: node:20
+    working_dir: /app
+    volumes:
+      - ./:/app
+    command: >
+      sh -c "npm install && npm run start"
+    ports:
+      - "4200:4200"
+    depends_on:
+      - mqtt
+

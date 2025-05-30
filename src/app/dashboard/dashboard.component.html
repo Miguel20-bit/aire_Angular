@@ -70,7 +70,7 @@
   </table>
 
   <script>
-    const client = new Paho.MQTT.Client("localhost", 9001, "dashboard_" + Math.random().toString(16).substr(2, 8));
+    const client = new Paho.MQTT.Client("mqtt", 9001, "dashboard_" + Math.random().toString(16).substr(2, 8));
     client.onConnectionLost = err => console.error("Conexión perdida", err);
     client.onMessageArrived = recibirMensaje;
 
