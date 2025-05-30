@@ -6,21 +6,32 @@
   <p>Enviando datos cada 5 segundos...</p>
 
   <script>
-    const client = new Paho.MQTT.Client("mqtt", 9001, "simulador_" + Math.random().toString(16).substr(2, 8));
-    client.connect({ onSuccess: () => setInterval(publicarDatos, 5000) });
+  // Detecta automáticamente si está en Docker o localhost
+  const mqttHost = window.location.hostname === 'localhost' ? 'localhost' : 'mqtt';
+  const client = new Paho.MQTT.Client(mqttHost, 9001, "simulador_" + Math.random().toString(16).substr(2, 8));
 
-    function publicarDatos() {
-      publicar("/air/pm25", (Math.random() * 100).toFixed(1));      // µg/m³
-      publicar("/air/pm10", (Math.random() * 150).toFixed(1));      // µg/m³
-      publicar("/air/co2", (Math.random() * 1000 + 400).toFixed(0)); // ppm
-      publicar("/air/tvoc", (Math.random() * 800).toFixed(0));       // ppb
-      publicar("/air/ica", (Math.random() * 500).toFixed(0));        // AQI
+  client.connect({ 
+    onSuccess: () => {
+      console.log("Simulador conectado a MQTT via WebSocket!");
+      setInterval(publicarDatos, 5000);
+    },
+    onFailure: (err) => {
+      console.error("Error conectando al broker:", err.errorMessage);
     }
+  });
 
-    function publicar(topico, valor) {
-      const mensaje = new Paho.MQTT.Message(valor);
-      mensaje.destinationName = topico;
-      client.send(mensaje);
-      console.log(`Publicado en ${topico}: ${valor}`);
-    }
-  </script>
+  function publicarDatos() {
+    publicar("/air/pm25", (Math.random() * 100).toFixed(1));
+    publicar("/air/pm10", (Math.random() * 150).toFixed(1));
+    publicar("/air/co2", (Math.random() * 1000 + 400).toFixed(0));
+    publicar("/air/tvoc", (Math.random() * 800).toFixed(0));
+    publicar("/air/ica", (Math.random() * 500).toFixed(0));
+  }
+
+  function publicar(topico, valor) {
+    const message = new Paho.MQTT.Message(valor);
+    message.destinationName = topico;
+    client.send(message);
+    console.log(`[Simulador] Publicado en ${topico}: ${valor}`);  // 👈 Verifica en consola
+  }
+</script>

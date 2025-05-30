@@ -70,121 +70,25 @@
   </table>
 
   <script>
-    const client = new Paho.MQTT.Client("mqtt", 9001, "dashboard_" + Math.random().toString(16).substr(2, 8));
-    client.onConnectionLost = err => console.error("Conexión perdida", err);
-    client.onMessageArrived = recibirMensaje;
+  const mqttHost = window.location.hostname === 'localhost' ? 'localhost' : 'mqtt';
+  const client = new Paho.MQTT.Client(mqttHost, 9001, "dashboard_" + Math.random().toString(16).substr(2, 8));
 
-    client.connect({ onSuccess: () => {
-      console.log("Dashboard conectado");
-      client.subscribe("/air/co2");
-      client.subscribe("/air/pm25");
-      client.subscribe("/air/pm10");
-      client.subscribe("/air/tvoc");
-      client.subscribe("/air/ica");
-    }});
+  client.onConnectionLost = (err) => {
+    console.error("Conexión MQTT perdida:", err.errorMessage);
+  };
 
-    const grafica = new Chart(document.getElementById("grafica").getContext("2d"), {
-      type: "line",
-      data: {
-        labels: [],
-        datasets: [
-          { label: "CO₂ (ppm)", data: [], borderColor: "red", fill: false },
-          { label: "PM2.5 (µg/m³)", data: [], borderColor: "blue", fill: false },
-          { label: "PM10 (µg/m³)", data: [], borderColor: "green", fill: false },
-          { label: "TVOC (ppb)", data: [], borderColor: "orange", fill: false }
-        ]
-      },
-      options: {
-        scales: {
-          x: { title: { display: true, text: 'Hora' } },
-          y: { beginAtZero: true }
-        }
-      }
-    });
+  client.onMessageArrived = (message) => {
+    console.log(`[Dashboard] Mensaje recibido: ${message.destinationName} = ${message.payloadString}`);  // 👈 Verifica en consola
+    // ... (tu lógica actual)
+  };
 
-    function recibirMensaje(message) {
-      const topic = message.destinationName;
-      const valor = parseFloat(message.payloadString);
-      const hora = new Date().toLocaleTimeString();
-
-      switch (topic) {
-        case "/air/co2":
-          document.getElementById("co2").textContent = valor;
-          actualizarGrafica(0, hora, valor);
-          break;
-        case "/air/pm25":
-          document.getElementById("pm25").textContent = valor;
-          actualizarGrafica(1, hora, valor);
-          break;
-        case "/air/pm10":
-          document.getElementById("pm10").textContent = valor;
-          actualizarGrafica(2, hora, valor);
-          break;
-        case "/air/tvoc":
-          document.getElementById("tvoc").textContent = valor;
-          actualizarGrafica(3, hora, valor);
-          actualizarSemaforo("tvoc", valor, [65, 220, 660, 2200, 5500]);
-          break;
-        case "/air/ica":
-          document.getElementById("aqi").textContent = valor;
-          document.getElementById("alerta").textContent = valor > 150 ? "¡Calidad del aire muy mala!" : "";
-          const color = actualizarSemaforo("aqi", valor, [50, 100, 150, 200, 300]);
-          actualizarConsejo(valor);
-          agregarFilaAlerta(hora, color, valor);
-          break;
-      }
+  client.connect({
+    onSuccess: () => {
+      console.log("Dashboard conectado a MQTT!");
+      client.subscribe("/air/#");  // Suscríbete a todos los tópicos bajo /air
+    },
+    onFailure: (err) => {
+      console.error("Error conectando dashboard:", err.errorMessage);
     }
-
-    function actualizarGrafica(indice, hora, valor) {
-      const chart = grafica;
-      if (!chart.data.labels.includes(hora)) {
-        chart.data.labels.push(hora);
-        chart.data.datasets.forEach((ds, i) => {
-          if (chart.data.datasets[i].data.length < chart.data.labels.length - 1) {
-            chart.data.datasets[i].data.push(null);
-          }
-        });
-      }
-      chart.data.datasets[indice].data.push(valor);
-      if (chart.data.labels.length > 12) {
-        chart.data.labels.shift();
-        chart.data.datasets.forEach(ds => ds.data.shift());
-      }
-      chart.update();
-    }
-
-    function actualizarSemaforo(tipo, valor, rangos) {
-      const colores = ["green", "yellow", "orange", "red", "purple", "brown"];
-      const color = colores.find((c, i) => valor <= (rangos[i] || Infinity)) || "brown";
-      document.getElementById("luz-" + tipo).style.backgroundColor = color;
-      return color;
-    }
-
-    function actualizarConsejo(ica) {
-      const consejos = [
-        "Aire limpio. Disfruta tus actividades al aire libre.",
-        "Aceptable. Personas sensibles pueden notar molestias.",
-        "Evita exposición prolongada si eres vulnerable.",
-        "Reduce actividades al aire libre.",
-        "Peligroso para todos. Permanece en interiores.",
-        "Muy peligroso. Quédate dentro y evita ventilar."
-      ];
-      let indice = 0;
-      if (ica <= 50) indice = 0;
-      else if (ica <= 100) indice = 1;
-      else if (ica <= 150) indice = 2;
-      else if (ica <= 200) indice = 3;
-      else if (ica <= 300) indice = 4;
-      else indice = 5;
-      document.getElementById("consejo").textContent = consejos[indice];
-    }
-
-    function agregarFilaAlerta(hora, color, ica) {
-      const fila = document.createElement("tr");
-      fila.innerHTML = `
-        <td>${hora}</td>
-        <td style="color:${color}; font-weight: bold">${color.toUpperCase()}</td>
-        <td>${ica}</td>`;
-      document.getElementById("tabla-alertas").prepend(fila);
-    }
-  </script>
+  });
+</script>

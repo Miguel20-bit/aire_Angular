@@ -1,24 +1,23 @@
-version: '3.8'
-
 services:
   mqtt:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    build: .
     ports:
       - "1883:1883"
       - "9001:9001"
+    volumes:
+      - ./mqtt.conf:/mosquitto/config/mosquitto.conf
     restart: unless-stopped
 
   angular-app:
     image: node:20
     working_dir: /app
     volumes:
-      - ./:/app
-    command: >
-      sh -c "npm install && npm run start"
+      - .:/app
     ports:
       - "4200:4200"
+    environment:
+      - MQTT_HOST=mqtt  # Nombre del servicio en Docker
+      - MQTT_WS_PORT=9001
+    command: sh -c "npm install && npm start"
     depends_on:
       - mqtt
-
